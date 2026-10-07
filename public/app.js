@@ -18,8 +18,17 @@ const incomingRoomArea =
 const inviteUrl =
   document.getElementById("inviteUrl");
 
-const copyButton =
-  document.getElementById("copyButton");
+const copyUrlButton =
+  document.getElementById("copyUrlButton");
+
+const copyPasswordButton =
+  document.getElementById("copyPasswordButton");
+
+const generatedPassword =
+  document.getElementById("generatedPassword");
+
+const passwordInput =
+  document.getElementById("passwordInput");
 
 const startArea =
   document.getElementById("startArea");
@@ -45,72 +54,66 @@ const hangupButton =
 const statusText =
   document.getElementById("status");
 
-
 let roomId = null;
+let roomPassword = null;
 let localStream = null;
 let peerConnection = null;
 
-
-// WebRTC設定
 const configuration = {
-
   iceServers: [
-
     {
       urls: "stun:stun.l.google.com:19302"
     }
-
   ]
-
 };
 
-
-// URLからルームID取得
 const params =
   new URLSearchParams(window.location.search);
 
 const roomFromUrl =
   params.get("room");
 
-
 if (roomFromUrl) {
-
   roomId = roomFromUrl;
 
   createRoomButton.classList.add("hidden");
-
   incomingRoomArea.classList.remove("hidden");
 
   statusText.textContent =
-    "通話への招待があります";
-
+    "パスワードを入力して参加してください";
 }
 
-
-// ランダムなルームID生成
 function createRoomId() {
-
   return crypto.randomUUID()
     .replaceAll("-", "")
-    .slice(0, 12);
-
+    .slice(0, 16);
 }
 
-
-// 新しい通話を作成
 createRoomButton.addEventListener(
   "click",
   () => {
-
     roomId = createRoomId();
+
+    socket.emit("create-room", roomId);
+
+    statusText.textContent =
+      "安全な通話ルームを作成しています...";
+  }
+);
+
+socket.on(
+  "room-created",
+  ({ roomId: createdRoomId, password }) => {
+    roomId = createdRoomId;
+    roomPassword = password;
 
     const url =
       `${window.location.origin}/?room=${roomId}`;
 
     inviteUrl.value = url;
+    generatedPassword.textContent = password;
 
     inviteArea.classList.remove("hidden");
-
     createRoomButton.classList.add("hidden");
 
     history.replaceState(
@@ -120,220 +123,195 @@ createRoomButton.addEventListener(
     );
 
     statusText.textContent =
-      "通話URLを作成しました";
-
+      "通話URLとパスワードを作成しました";
   }
 );
 
-
-// URLコピー
-copyButton.addEventListener(
+copyUrlButton.addEventListener(
   "click",
   async () => {
-
     try {
-
       await navigator.clipboard.writeText(
         inviteUrl.value
       );
 
-      copyButton.textContent =
-        "コピーしました！";
+      copyUrlButton.textContent =
+        "コピーしました";
 
       setTimeout(() => {
-
-        copyButton.textContent =
-          "コピー";
-
-      }, 2000);
-
+        copyUrlButton.textContent =
+          "URLコピー";
+      }, 1500);
     } catch (error) {
-
       console.error(error);
-
-      inviteUrl.select();
-
     }
-
   }
 );
 
+copyPasswordButton.addEventListener(
+  "click",
+  async () => {
+    try {
+      await navigator.clipboard.writeText(
+        generatedPassword.textContent
+      );
 
-// 作成者が参加
+      copyPasswordButton.textContent =
+        "コピーしました";
+
+      setTimeout(() => {
+        copyPasswordButton.textContent =
+          "コピー";
+      }, 1500);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+);
+
 joinCreatedRoomButton.addEventListener(
   "click",
   () => {
-
-    joinRoom();
-
+    joinRoom(roomPassword);
   }
 );
 
-
-// 招待された側が参加
 joinInviteButton.addEventListener(
   "click",
   () => {
+    const enteredPassword =
+      passwordInput.value.trim();
 
-    joinRoom();
+    if (enteredPassword.length !== 6) {
+      alert("6桁のパスワードを入力してください");
+      return;
+    }
 
+    joinRoom(enteredPassword);
   }
 );
 
-
-// カメラ・マイク開始
 async function startCamera() {
-
   localStream =
     await navigator.mediaDevices.getUserMedia({
-
       video: true,
-
       audio: true
-
     });
 
   localVideo.srcObject =
     localStream;
-
 }
 
-
-// 通話参加
-async function joinRoom() {
-
+async function joinRoom(password) {
   try {
-
     statusText.textContent =
       "カメラとマイクを準備しています...";
 
     await startCamera();
 
-    startArea.classList.add("hidden");
-
-    callArea.classList.remove("hidden");
-
     socket.emit(
       "join-room",
-      roomId
+      {
+        roomId,
+        password
+      }
     );
 
     statusText.textContent =
-      "接続中...";
-
-  }
-
-  catch (error) {
-
+      "認証中...";
+  } catch (error) {
     console.error(error);
 
     alert(
-      "カメラまたはマイクを使用できませんでした。ブラウザの許可を確認してください。"
+      "カメラまたはマイクを使用できませんでした"
     );
-
   }
-
 }
 
+function showCallArea() {
+  startArea.classList.add("hidden");
+  callArea.classList.remove("hidden");
+}
 
-// WebRTC接続作成
 function createPeerConnection() {
-
   peerConnection =
-    new RTCPeerConnection(
-      configuration
-    );
-
+    new RTCPeerConnection(configuration);
 
   localStream
     .getTracks()
     .forEach(track => {
-
       peerConnection.addTrack(
         track,
         localStream
       );
-
     });
-
 
   peerConnection.ontrack =
     event => {
-
       remoteVideo.srcObject =
         event.streams[0];
-
     };
-
 
   peerConnection.onicecandidate =
     event => {
-
       if (event.candidate) {
-
         socket.emit(
           "ice-candidate",
           {
-
             roomId,
-
             candidate:
               event.candidate
-
           }
         );
-
       }
-
     };
-
 
   peerConnection.onconnectionstatechange =
     () => {
-
       if (!peerConnection) return;
 
       if (
-        peerConnection.connectionState
-        === "connected"
+        peerConnection.connectionState ===
+        "connected"
       ) {
-
         statusText.textContent =
           "通話中";
-
       }
 
       if (
-        peerConnection.connectionState
-        === "disconnected"
+        peerConnection.connectionState ===
+        "disconnected"
       ) {
-
         statusText.textContent =
           "相手との接続が切れました";
-
       }
-
     };
-
 }
 
-
-// 1人目
 socket.on(
   "waiting",
   () => {
+    showCallArea();
 
     statusText.textContent =
       "相手の参加を待っています...";
-
   }
 );
 
+socket.on(
+  "ready",
+  () => {
+    showCallArea();
 
-// 2人目が入室
+    statusText.textContent =
+      "相手と接続しています...";
+  }
+);
+
 socket.on(
   "user-joined",
   async () => {
+    showCallArea();
 
     statusText.textContent =
       "相手が参加しました";
@@ -344,134 +322,132 @@ socket.on(
       await peerConnection.createOffer();
 
     await peerConnection
-      .setLocalDescription(
-        offer
-      );
+      .setLocalDescription(offer);
 
     socket.emit(
       "offer",
       {
-
         roomId,
-
         offer
-
       }
     );
-
   }
 );
 
-
-// Offer受信
 socket.on(
   "offer",
   async offer => {
+    showCallArea();
 
     createPeerConnection();
 
     await peerConnection
-      .setRemoteDescription(
-        offer
-      );
+      .setRemoteDescription(offer);
 
     const answer =
       await peerConnection
         .createAnswer();
 
     await peerConnection
-      .setLocalDescription(
-        answer
-      );
+      .setLocalDescription(answer);
 
     socket.emit(
       "answer",
       {
-
         roomId,
-
         answer
-
       }
     );
-
   }
 );
 
-
-// Answer受信
 socket.on(
   "answer",
   async answer => {
+    if (!peerConnection) return;
 
     await peerConnection
-      .setRemoteDescription(
-        answer
-      );
-
+      .setRemoteDescription(answer);
   }
 );
 
-
-// ICE Candidate受信
 socket.on(
   "ice-candidate",
   async candidate => {
-
     if (
       peerConnection &&
       candidate
     ) {
-
       try {
-
         await peerConnection
-          .addIceCandidate(
-            candidate
-          );
-
-      }
-
-      catch (error) {
-
+          .addIceCandidate(candidate);
+      } catch (error) {
         console.error(
           "ICE candidate error:",
           error
         );
-
       }
-
     }
-
   }
 );
 
+socket.on(
+  "wrong-password",
+  () => {
+    stopLocalStream();
 
-// 3人目
+    statusText.textContent =
+      "パスワードが違います";
+
+    alert("パスワードが違います");
+  }
+);
+
+socket.on(
+  "room-not-found",
+  () => {
+    stopLocalStream();
+
+    statusText.textContent =
+      "この通話ルームは存在しません";
+
+    alert(
+      "この通話ルームは無効、または終了しています"
+    );
+  }
+);
+
 socket.on(
   "room-full",
   () => {
+    stopLocalStream();
+
+    statusText.textContent =
+      "この通話は満員です";
 
     alert(
       "この通話にはすでに2人参加しています"
     );
-
-    endCall();
-
   }
 );
 
+socket.on(
+  "user-left",
+  () => {
+    remoteVideo.srcObject = null;
 
-// マイク切替
+    statusText.textContent =
+      "相手が退出しました";
+  }
+);
+
 micButton.addEventListener(
   "click",
   () => {
-
     if (!localStream) return;
 
     const audioTrack =
-      localStream
-        .getAudioTracks()[0];
+      localStream.getAudioTracks()[0];
 
     if (!audioTrack) return;
 
@@ -482,21 +458,16 @@ micButton.addEventListener(
       audioTrack.enabled
         ? "🎤 マイクOFF"
         : "🔇 マイクON";
-
   }
 );
 
-
-// カメラ切替
 cameraButton.addEventListener(
   "click",
   () => {
-
     if (!localStream) return;
 
     const videoTrack =
-      localStream
-        .getVideoTracks()[0];
+      localStream.getVideoTracks()[0];
 
     if (!videoTrack) return;
 
@@ -507,67 +478,44 @@ cameraButton.addEventListener(
       videoTrack.enabled
         ? "📷 カメラOFF"
         : "🚫 カメラON";
-
   }
 );
 
-
-// 終了
 hangupButton.addEventListener(
   "click",
   () => {
-
+    socket.emit("leave-room");
     endCall();
-
   }
 );
 
-
-function endCall() {
-
-  if (peerConnection) {
-
-    peerConnection.close();
-
-    peerConnection = null;
-
-  }
-
-
+function stopLocalStream() {
   if (localStream) {
-
     localStream
       .getTracks()
-      .forEach(
-        track =>
-          track.stop()
+      .forEach(track =>
+        track.stop()
       );
 
     localStream = null;
-
   }
 
-
   localVideo.srcObject = null;
+}
+
+function endCall() {
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+
+  stopLocalStream();
 
   remoteVideo.srcObject = null;
 
-
-  callArea.classList.add(
-    "hidden"
-  );
-
-  startArea.classList.remove(
-    "hidden"
-  );
-
+  callArea.classList.add("hidden");
+  startArea.classList.remove("hidden");
 
   statusText.textContent =
     "通話を終了しました";
-
-
-  incomingRoomArea.classList.remove(
-    "hidden"
-  );
-
 }
