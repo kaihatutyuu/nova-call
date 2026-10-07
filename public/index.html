@@ -6,44 +6,70 @@
   <title>NOVA CALL</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
   <main class="container">
 
-    <h1>NOVA CALL</h1>
-    <p class="subtitle">シンプルなビデオ通話</p>
+    <header class="hero">
+      <div class="hero-badge">やさしいビデオ通話</div>
+      <h1>NOVA CALL</h1>
+      <p class="subtitle">
+        URLとパスワードで、かんたんに2人だけの通話ルームを作れます。
+      </p>
+    </header>
 
-    <div id="startArea" class="start-area">
+    <section id="startArea" class="start-area">
 
-      <button id="createRoomButton" class="primary-button">
-        ＋ 新しい通話を作成
-      </button>
+      <div class="card main-card">
+        <h2>新しい通話を始める</h2>
+        <p class="card-text">
+          まずは新しい通話ルームを作成します。  
+          作成後、URLと6桁パスワードを相手に送ってください。
+        </p>
 
-      <div id="inviteArea" class="invite-area hidden">
-
-        <p>このURLとパスワードを相手に送ってください</p>
-
-        <div class="invite-box">
-          <input id="inviteUrl" type="text" readonly>
-          <button id="copyUrlButton">URLコピー</button>
-        </div>
-
-        <div class="password-display">
-          <span>パスワード</span>
-          <strong id="generatedPassword">------</strong>
-          <button id="copyPasswordButton">コピー</button>
-        </div>
-
-        <button id="joinCreatedRoomButton" class="primary-button">
-          通話に参加
+        <button id="createRoomButton" class="primary-button">
+          ＋ 新しい通話を作成
         </button>
-
       </div>
 
-      <div id="incomingRoomArea" class="hidden">
+      <div id="inviteArea" class="card invite-card hidden">
+        <div class="section-label">作成した人向け</div>
+        <h2>相手を招待する</h2>
+        <p class="card-text">
+          ① URLを送る → ② パスワードを送る → ③ 自分も参加する
+        </p>
 
-        <p>ビデオ通話に招待されています</p>
+        <div class="step-block">
+          <label class="step-title">① 招待URL</label>
+          <div class="invite-box">
+            <input id="inviteUrl" type="text" readonly>
+            <button id="copyUrlButton" class="sub-button">URLコピー</button>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <label class="step-title">② 6桁パスワード</label>
+          <div class="password-display">
+            <span class="password-label">パスワード</span>
+            <strong id="generatedPassword">------</strong>
+            <button id="copyPasswordButton" class="sub-button">コピー</button>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <label class="step-title">③ 自分も入室</label>
+          <button id="joinCreatedRoomButton" class="primary-button">
+            通話に参加
+          </button>
+        </div>
+      </div>
+
+      <div id="incomingRoomArea" class="card join-card hidden">
+        <div class="section-label">招待された人向け</div>
+        <h2>通話に参加する</h2>
+        <p class="card-text">
+          相手から送られた6桁のパスワードを入力して参加してください。
+        </p>
 
         <input
           id="passwordInput"
@@ -56,18 +82,16 @@
         <button id="joinInviteButton" class="primary-button">
           通話に参加
         </button>
-
       </div>
 
-    </div>
+    </section>
 
-    <p id="status"></p>
+    <p id="status" class="status-box">準備ができています</p>
 
-    <div id="callArea" class="call-area hidden">
+    <section id="callArea" class="call-area hidden">
 
       <div class="videos">
-
-        <div class="video-box">
+        <div class="video-box remote-box">
           <video id="remoteVideo" autoplay playsinline></video>
           <span class="video-label">相手</span>
         </div>
@@ -76,21 +100,19 @@
           <video id="localVideo" autoplay muted playsinline></video>
           <span class="video-label">あなた</span>
         </div>
-
       </div>
 
       <div class="controls">
-        <button id="micButton">🎤 マイクOFF</button>
-        <button id="cameraButton">📷 カメラOFF</button>
-        <button id="hangupButton">📞 終了</button>
+        <button id="micButton" class="sub-button">🎤 マイクOFF</button>
+        <button id="cameraButton" class="sub-button">📷 カメラOFF</button>
+        <button id="hangupButton" class="danger-button">📞 終了</button>
       </div>
 
-    </div>
+    </section>
 
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
-
 </body>
 </html>
