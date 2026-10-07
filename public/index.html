@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA CALL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <main class="container">
+
+    <h1>NOVA CALL</h1>
+    <p class="subtitle">シンプルなビデオ通話</p>
+
+    <!-- 最初の画面 -->
+    <div id="startArea" class="start-area">
+
+      <button id="createRoomButton" class="primary-button">
+        ＋ 新しい通話を作成
+      </button>
+
+      <div id="inviteArea" class="invite-area hidden">
+
+        <p>このURLを相手に送ってください</p>
+
+        <div class="invite-box">
+          <input
+            id="inviteUrl"
+            type="text"
+            readonly
+          >
+
+          <button id="copyButton">
+            コピー
+          </button>
+        </div>
+
+        <button id="joinCreatedRoomButton" class="primary-button">
+          通話に参加
+        </button>
+
+      </div>
+
+      <div id="incomingRoomArea" class="hidden">
+
+        <p>ビデオ通話に招待されています</p>
+
+        <button id="joinInviteButton" class="primary-button">
+          通話に参加
+        </button>
+
+      </div>
+
+    </div>
+
+    <p id="status"></p>
+
+    <!-- 通話画面 -->
+    <div id="callArea" class="call-area hidden">
+
+      <div class="videos">
+
+        <div class="video-box">
+          <video
+            id="remoteVideo"
+            autoplay
+            playsinline
+          ></video>
+
+          <span class="video-label">
+            相手
+          </span>
+        </div>
+
+        <div class="video-box local-box">
+          <video
+            id="localVideo"
+            autoplay
+            muted
+            playsinline
+          ></video>
+
+          <span class="video-label">
+            あなた
+          </span>
+        </div>
+
+      </div>
+
+      <div class="controls">
+
+        <button id="micButton">
+          🎤 マイクOFF
+        </button>
+
+        <button id="cameraButton">
+          📷 カメラOFF
+        </button>
+
+        <button id="hangupButton">
+          📞 終了
+        </button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
